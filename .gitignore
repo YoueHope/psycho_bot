@@ -1,0 +1,3 @@
+.env
+models/YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf
+models/.cache
