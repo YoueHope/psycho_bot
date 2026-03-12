@@ -1,13 +1,17 @@
 from typing import Tuple, List
-
 import torch
 from transformers import pipeline
 from llama_cpp import Llama
 from bot.config import MODEL_PATH, SENTIMENT_MODEL  
 from bot.utils.helpers import detect_stress_type
+import os
+from dotenv import load_dotenv
+
+# Загружаем переменные из .env
+load_dotenv()
 
 # Путь к скачанному GGUF-файлу 
-MODEL_PATH = "./models/YandexGPT-5-Lite-8B-instruct-Q4_K_M.gguf"
+MODEL_PATH = os.getenv("MODEL_PATH")
 
 class NLPProcessor:
     def __init__(self):
@@ -47,15 +51,20 @@ class NLPProcessor:
         # Добавляем текущее сообщение и сигнал для ответа модели
         dialogue += f"{user_message} Ассистент:[SEP]"
 
-        # Системный промпт 
+        # УЛУЧШЕННЫЙ СИСТЕМНЫЙ ПРОМПТ
         system_prompt = (
-        "Ты — эмпатичный психолог. Твоя задача — поддержать человека, "
-        "проявить понимание и дать мягкий совет, если уместно. "
-        "Отвечай на русском языке простым текстом, без использования Markdown, "
-        "звёздочек, жирного шрифта и других символов форматирования. "
-        "Если приводишь список, используй обычные цифры с точкой (1., 2., ...). "
-        "Старайся давать полные, законченные ответы."
-    )
+            "Ты — эмпатичный психолог. Твоя задача — поддержать человека, "
+            "проявить понимание и дать мягкий совет, если уместно. "
+            "Отвечай на русском языке простым текстом, без использования Markdown, "
+            "звёздочек, жирного шрифта и других символов форматирования. "
+            "Если приводишь список, используй обычные цифры с точкой (1., 2., ...). "
+            "Старайся давать полные, законченные ответы.\n\n"
+            "Важно: не предлагай обратиться к специалисту слишком навязчиво. "
+            "Если пользователь говорит, что не хочет к специалисту, не настаивай. "
+            "Вместо этого предложи конкретные техники самопомощи: дыхательные упражнения, "
+            "методы релаксации, идеи для отвлечения, советы по изменению образа мыслей. "
+            "Будь добрым, поддерживающим и практичным."
+        )
         system_prompt_processed = system_prompt.replace('\n', ' [NL] ')
         
         # Собираем полный промпт: системная инструкция как первое сообщение пользователя, затем история, затем текущий запрос.
@@ -72,6 +81,10 @@ class NLPProcessor:
             echo=False
         )
         response = output["choices"][0]["text"].strip()
+
+        response = response.replace('[NL]', '\n')
+        response = '\n'.join(line.strip() for line in response.splitlines())
+        
         return response
 
     def analyze_sentiment(self, text: str) -> str:
